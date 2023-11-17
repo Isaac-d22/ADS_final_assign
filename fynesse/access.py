@@ -246,7 +246,7 @@ def store_joined_data(conn, year):
     cursor.execute(f"""
                 SELECT price, date_of_transfer, prices.postcode, property_type, new_build_flag, tenure_type, locality, town_city, district, county, country, latitude, longitude
                 FROM (SELECT price, date_of_transfer, postcode, property_type, new_build_flag, tenure_type, locality, town_city, district, county
-                    FROM pp_data WHERE (date_of_transfer between '{year}-01-01' and '{year}-12-31')) prices
+                    FROM pp_data WHERE (date_of_transfer >= '{year}-01-01' AND date_of_transfer <= '{year}-12-31')) prices
                 INNER JOIN (SELECT country, latitude, longitude, postcode
                             FROM postcode_data) postcodes
                 ON prices.postcode = postcodes.postcode;
@@ -262,5 +262,5 @@ def store_joined_data(conn, year):
     print(f"{year} took: {end-start} seconds")
         
 def price_coordinates_data_to_df(records):
-    return pd.DataFrame(records, columns =['price', 'date_of_transfer', 'prices.postcode', 'property_type', 'new_build_flag', 'tenure_type', 
+    return pd.DataFrame(records, columns =['price', 'date_of_transfer', 'postcode', 'property_type', 'new_build_flag', 'tenure_type', 
                                          'locality', 'town_city', 'district', 'county', 'country', 'latitude', 'longitude', 'db_id'])
