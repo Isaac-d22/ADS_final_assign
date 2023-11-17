@@ -180,11 +180,11 @@ def create_prices_coordinates_data(conn):
     except Exception as e:
         print(f"Error creating prices_coordinates_data table: {e}")
         
-def index_pp_data(conn):
+def create_index(conn, index_name, table, field):
     try:
         cursor = conn.cursor()
-        cursor.execute("""
-                    CREATE INDEX index_postcode ON pp_data(postcode);
+        cursor.execute(f"""
+                    CREATE INDEX {index_name} ON {table}({field});
                     """)
         cursor.execute("""
                     CREATE INDEX index_date ON pp_data(date_of_transfer);
@@ -192,18 +192,7 @@ def index_pp_data(conn):
         conn.commit()
         cursor.close()
     except Exception as e:
-        print(f"Error indexing pp_data table: {e}")
-        
-def index_postcode_data(conn):
-    try:
-        cursor = conn.cursor()
-        cursor.execute("""
-                    CREATE INDEX index_postcode ON postcode_data(postcode);
-                    """)
-        conn.commit()
-        cursor.close()
-    except Exception as e:
-        print(f"Error indexing postcode_data table: {e}")
+        print(f"Error indexing {table} table on {field}: {e}")
     
 def populate_table(conn, filename, table):
     cursor = conn.cursor()
