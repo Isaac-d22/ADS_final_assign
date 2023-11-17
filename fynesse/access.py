@@ -194,7 +194,7 @@ def index_pp_data(conn):
     except Exception as e:
         print(f"Error indexing pp_data table: {e}")
         
-def create_index(conn):
+def index_postcode_data(conn):
     try:
         cursor = conn.cursor()
         cursor.execute("""
