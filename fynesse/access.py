@@ -186,9 +186,6 @@ def create_index(conn, index_name, table, field):
         cursor.execute(f"""
                     CREATE INDEX {index_name} ON {table}({field});
                     """)
-        cursor.execute("""
-                    CREATE INDEX index_date ON pp_data(date_of_transfer);
-                    """)
         conn.commit()
         cursor.close()
     except Exception as e:
