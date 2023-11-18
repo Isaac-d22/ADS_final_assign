@@ -1,6 +1,6 @@
 from .config import *
-
 from . import access
+import osmnx as ox
 
 """These are the types of import we might expect in this file
 import pandas
@@ -29,3 +29,24 @@ def view(data):
 def labelled(data):
     """Provide a labelled set of data ready for supervised learning."""
     raise NotImplementedError
+
+def get_pois(latitude, longitude, box_height, box_width, tags):
+    north = latitude + box_height/2
+    south = latitude - box_height/2
+    west = longitude - box_width/2
+    east = longitude + box_width/2
+    return ox.geometries_from_bbox(north, south, east, west, tags)
+
+def get_graph(latitude, longitude, box_height, box_width):
+    north = latitude + box_height/2
+    south = latitude - box_height/2
+    west = longitude - box_width/2
+    east = longitude + box_width/2
+    return ox.graph_from_bbox(north, south, east, west)
+
+def get_box(latitude, longitude, box_height, box_width):
+    north = latitude + box_height/2
+    south = latitude - box_height/2
+    west = longitude - box_width/2
+    east = longitude + box_width/2
+    return north, south, west, east

@@ -217,7 +217,7 @@ def query_table(conn, table, fields=['*'], conditions=[], limit=10):
     try:
         cursor = conn.cursor()
         cursor.execute(f"""
-                    SELECT {', '.join(['*'])} FROM {'prices_coordinates_data'} {('WHERE ' if conditions != [] else '') + 'AND '.join(conditions)} LIMIT {limit}; 
+                    SELECT {', '.join([fields])} FROM {table} {('WHERE ' if conditions != [] else '') + 'AND '.join(conditions)} LIMIT {limit}; 
                     """)
         conn.commit()
         result = cursor.fetchall()
