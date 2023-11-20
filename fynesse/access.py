@@ -5,6 +5,7 @@ import zipfile
 import pandas as pd
 from time import time
 import csv
+import numpy as np
 
 """These are the types of import we might expect in this file
 import httplib2
@@ -250,3 +251,18 @@ def store_joined_data(conn, year):
 def price_coordinates_data_to_df(records):
     return pd.DataFrame(records, columns =['price', 'date_of_transfer', 'postcode', 'property_type', 'new_build_flag', 'tenure_type', 
                                          'locality', 'town_city', 'district', 'county', 'country', 'latitude', 'longitude', 'db_id'])
+    
+def get_random_rows(conn, num_results=100, seed=1):
+    num_results = 100
+    NUM_DB_ROWS = 29669630
+
+    rng = np.random.default_rng(seed)
+    ids = rng.integers(low=1, high=NUM_DB_ROWS, size=num_results)
+    cursor = conn.cursor()
+    cursor.execute(f"""
+                SELECT * FROM prices_coordinates_data
+                WHERE {" OR ".join(["db_id = " + str(id) for id in ids])};
+                """)
+    res = price_coordinates_data_to_df(cursor.fetchall())
+    cursor.close()
+    return res
