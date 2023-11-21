@@ -92,7 +92,7 @@ def visualise_pois_by_key(locations, keys, box_height=0.02, box_width=0.02, tag_
     graphs = []
 
     for loc in locations:
-        pois.append(get_pois(loc[0], loc[1], box_height, box_width, KEYS_DICT))
+        pois.append(get_pois(loc[0], loc[1], KEYS_DICT, box_height, box_width))
         graphs.append(get_graph(loc[0], loc[1], box_height, box_width))
     
     fig, ax = plt.subplots(len(keys), len(locations), figsize=(len(locations[0][2]), (len(keys)) * 4))
@@ -133,3 +133,14 @@ def visualise_pois_by_key(locations, keys, box_height=0.02, box_width=0.02, tag_
             except KeyError:
                 print(f"{loc[2]} has no {key} keys")
             plt.tight_layout()
+            
+def visualise_feature_dist(pois_by_features, bins=10):
+    features = {}
+    for key in pois_by_features[0].keys():
+        for pois in pois_by_features:
+            features[key] = features.get(key, []) + [pois[key]]
+    _, ax = plt.subplots(len(features)//3 + 1, 3, figsize=(len(next(iter(features.keys()))), len(features) * 1.5))
+    for i, feature in enumerate(features.items()):
+        sub_ax = ax[i//3][i%3]
+        sub_ax.set_title(feature[0])
+        sub_ax.hist(feature[1], bins=bins)
