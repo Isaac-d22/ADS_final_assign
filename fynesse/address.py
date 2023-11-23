@@ -19,7 +19,7 @@ import scipy.stats"""
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
-from fynesse_template.fynesse import access, assess
+import access, assess
 
 
 def predict_price(latitude, longitude, date, property_type):
