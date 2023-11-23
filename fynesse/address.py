@@ -20,7 +20,8 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 from sklearn.decomposition import PCA
-import access, assess
+import fynesse.access as access
+import fynesse.assess as assess
 
 TAGS = [("amenity", "school")]
 
@@ -55,7 +56,7 @@ from dateutil.relativedelta import relativedelta
 # will include the target so make sure to remove that before training
 def get_training_samples(latitude, longitude, date, property_type, date_range=2, area_range=2/69, limit=1000):
     credentials = access.get_credentials("credentials.yaml")
-    conn = access.create_connection(user=credentials["username"], password=credentials["password"], host=credentials["url"], port=credentials["port"], database=credentials["db_name"])
+    conn = access.create_connection(user=credentials["username"], password=credentials["password"], host=credentials["url"], port=credentials["port"], database=credentials["name"])
     conditions = [
                   access.greater_equal_condition('latitude', latitude-area_range), access.greater_equal_condition(latitude+area_range, 'latitude'),
                   access.greater_equal_condition('longitude', longitude-area_range), access.greater_equal_condition(longitude+area_range, 'longitude'),
