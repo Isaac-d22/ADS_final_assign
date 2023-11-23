@@ -216,9 +216,12 @@ def greater_condition(field1, field2):
     
 def query_table(conn, table, fields=['*'], conditions=[], limit=10):
     try:
+        print(f"""
+                SELECT {', '.join(fields)} FROM {table} {('WHERE ' if conditions != [] else '') + ' AND '.join(conditions)} LIMIT {limit}; 
+                    """)
         cursor = conn.cursor()
         cursor.execute(f"""
-                    SELECT {', '.join([fields])} FROM {table} {('WHERE ' if conditions != [] else '') + 'AND '.join(conditions)} LIMIT {limit}; 
+                    SELECT {', '.join(fields)} FROM {table} {('WHERE ' if conditions != [] else '') + ' AND '.join(conditions)} LIMIT {limit}; 
                     """)
         conn.commit()
         result = cursor.fetchall()
@@ -226,7 +229,7 @@ def query_table(conn, table, fields=['*'], conditions=[], limit=10):
         return result
     except Exception as e:
         print(f"The following error occured in the query to {table}: {e}")
-
+        
 def store_joined_data(conn, year):
     cursor = conn.cursor()
     start = time()
