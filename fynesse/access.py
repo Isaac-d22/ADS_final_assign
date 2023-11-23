@@ -22,6 +22,11 @@ def data():
     """Read the data from the web or local file, returning structured format such as a data frame"""
     raise NotImplementedError
 
+def get_credentials(path):
+    with open(path) as file:
+        credentials = yaml.safe_load(file)
+    return credentials
+
 def create_connection(user, password, host, port, database=None):
     """ Create a database connection to the MariaDB database
         specified by the host url and database name.
