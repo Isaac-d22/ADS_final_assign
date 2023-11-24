@@ -28,9 +28,11 @@ TAGS = [("amenity", "school")]
 
 
 def predict_price(latitude, longitude, date, property_type):
+    print('Collcting samples')
     samples = get_training_samples(latitude, longitude, date, property_type, date_range=50, limit=500)
     target_id = samples[(samples.latitude == latitude) & (samples.longitude == longitude) & (samples.date == date) & (samples.property_type == property_type)]
     # TODO: Remove price to predict from training data
+    print('Extracting pois')
     pois_by_features = []
     for i in range(len(samples)):
         pois_by_features.append(assess.count_pois_by_features(assess.get_pois(float(samples.iloc[i].latitude), float(samples.iloc[i].longitude), 
@@ -54,15 +56,15 @@ def predict_price(latitude, longitude, date, property_type):
     
 # get relevant training samples
 # will include the target so make sure to remove that before training
-def get_training_samples(latitude, longitude, date, property_type, date_range=1, area_range=0.02, limit=1000):
+def get_training_samples(latitude, longitude, date, property_type, date_range=28, area_range=0.02, limit=1000):
     credentials = access.get_credentials("credentials.yaml")
     conn = access.create_connection(user=credentials["username"], password=credentials["password"], host=credentials["url"], port=credentials["port"], database=credentials["name"])
     conditions = [
-                  access.greater_equal_condition('date_of_transfer', f"'{date-relativedelta(months=date_range)}'"), access.greater_equal_condition(f"'{date+relativedelta(months=date_range)}'", 'date_of_transfer'),
+                  access.greater_equal_condition('date_of_transfer', f"'{date-relativedelta(days=date_range)}'"), access.greater_equal_condition(f"'{date+relativedelta(days=date_range)}'", 'date_of_transfer'),
                   access.greater_equal_condition('latitude', latitude-area_range), access.greater_equal_condition(latitude+area_range, 'latitude'),
                   access.greater_equal_condition('longitude', longitude-area_range), access.greater_equal_condition(longitude+area_range, 'longitude'),
                   ]
-    samples = access.price_coordinates_data_to_df(access.query_table(conn, 'prices_coordinates_data', fields=['price', 'property_type', 'new_build_flag', 'tenure_type', 'latitude', 'longitude'], conditions=conditions, limit=limit))
+    samples = access.price_coordinates_data_to_df(access.query_table(conn, 'prices_coordinates_data', conditions=conditions, limit=limit))
     conn.close()
     return samples
 
