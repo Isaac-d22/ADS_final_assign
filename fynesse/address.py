@@ -28,9 +28,10 @@ TAGS = [("amenity", "school")]
 
 
 def predict_price(latitude, longitude, date, property_type):
-    print('Collcting samples')
+    print('Collecting training samples')
     samples = get_training_samples(latitude, longitude, date, property_type, date_range=50, limit=500)
-    target_id = samples[(samples.latitude == latitude) & (samples.longitude == longitude) & (samples.date == date) & (samples.property_type == property_type)]
+    target_id = ((samples.latitude.between(latitude-1e-7, latitude+1e-7)) & (samples.longitude.between(longitude-1e-7, longitude+1e-7)) & (samples.date_of_transfer == date) & (samples.property_type == property_type)).idxmax()
+    print(len(samples), 'num training samples')
     # TODO: Remove price to predict from training data
     print('Extracting pois')
     pois_by_features = []
@@ -40,13 +41,13 @@ def predict_price(latitude, longitude, date, property_type):
     encoded_property_features = property_feature_map(samples)
     features = convert_to_principle_components(pois_by_features, encoded_property_features)
     target_features = features[target_id]
-    np.delete(features, target_id)
+    features = np.delete(features, target_id, axis=0)
     prices = samples['price'].to_numpy()
     target_price = prices[target_id]
-    np.delete(prices, target_id)
+    prices = np.delete(prices, target_id, axis=0)
     m_linear = sm.OLS(prices, features)
     results = m_linear.fit()
-    prediction = results.get_prediction(target_features).summary_frame(alpha=0.05)['mean']
+    prediction = results.get_prediction(target_features).summary_frame(alpha=0.05)['mean'][0]
     percentage_error = 100 * abs(prediction - target_price) / target_price
     if percentage_error > 20:
         print("Poor model perfromance")
@@ -66,10 +67,14 @@ def get_training_samples(latitude, longitude, date, property_type, date_range=28
                   ]
     samples = access.price_coordinates_data_to_df(access.query_table(conn, 'prices_coordinates_data', conditions=conditions, limit=limit))
     conn.close()
+    samples = samples[samples.property_type == property_type]
+    samples = samples.reset_index()
     return samples
 
 def convert_to_principle_components(pois_by_features, encoded_property_features, threshold=0.95):
     df = pd.DataFrame(pois_by_features)
+    # print(df)
+    # print(encoded_property_features)
     df = pd.concat([df, encoded_property_features],axis=1)
     corr = df.corr()
     corr = corr.dropna(how='all')
@@ -86,6 +91,7 @@ def property_feature_map(training_rows):
     replacements = {'new_build_flag': {'N': 0, 'Y' :1}, 'tenure_type': {'L': 0, 'F': 1}}
     # one_hot = {'F': [1,0,0,0,0], 'S': [0,1,0,0,0], 'T': [0,0,1,0,0], 'D': [0,0,0,1,0], 'O': [0,0,0,0,1]}
     res = training_rows[['new_build_flag', 'tenure_type']]
+    # print(res)
     res = res.replace(replacements) # Not sure this needs to be here
     res.rename(columns={"tenure_type": 'freehold_flag'})
     # res['property_type'] = res['property_type'].map(one_hot)
