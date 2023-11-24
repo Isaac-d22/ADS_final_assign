@@ -53,7 +53,7 @@ def predict_price(latitude, longitude, date, property_type):
     if avg_percent_error > 20:
         print("Poor model perfromance")
     print(f"Predicted: {prediction}, Actual: {target_price}, Percentage error: {percentage_error}%")
-    return (prediction, target_price)
+    return (prediction, target_price, avg_percent_error)
 
 def cross_val(prices, features):
     percentage_errors = []
