@@ -45,15 +45,28 @@ def predict_price(latitude, longitude, date, property_type):
     prices = samples['price'].to_numpy()
     target_price = prices[target_id]
     prices = np.delete(prices, target_id, axis=0)
+    avg_percent_error = cross_val(prices, features)
     m_linear = sm.OLS(prices, features)
     results = m_linear.fit()
     prediction = results.get_prediction(target_features).summary_frame(alpha=0.05)['mean'][0]
     percentage_error = 100 * abs(prediction - target_price) / target_price
-    if percentage_error > 20:
+    if avg_percent_error > 20:
         print("Poor model perfromance")
     print(f"Predicted: {prediction}, Actual: {target_price}, Percentage error: {percentage_error}%")
     return (prediction, target_price)
-    
+
+def cross_val(prices, features):
+    percentage_errors = []
+    for i, target_features in enumerate(features):
+        target_price = prices[i]
+        train_features = np.delete(features, i, axis=0)
+        train_prices = np.delete(prices, i, axis=0)
+        m_linear = sm.OLS(train_prices, train_features)
+        results = m_linear.fit()
+        prediction = results.get_prediction(target_features).summary_frame(alpha=0.05)['mean'][0]
+        percentage_error = 100 * abs(prediction - target_price) / target_price
+        percentage_errors.append(percentage_error)
+    return sum(percentage_errors) / len(percentage_errors)
     
 # get relevant training samples
 # will include the target so make sure to remove that before training
@@ -73,8 +86,6 @@ def get_training_samples(latitude, longitude, date, property_type, date_range=28
 
 def convert_to_principle_components(pois_by_features, encoded_property_features, threshold=0.95):
     df = pd.DataFrame(pois_by_features)
-    # print(df)
-    # print(encoded_property_features)
     df = pd.concat([df, encoded_property_features],axis=1)
     corr = df.corr()
     corr = corr.dropna(how='all')
@@ -89,12 +100,9 @@ def convert_to_principle_components(pois_by_features, encoded_property_features,
 
 def property_feature_map(training_rows):
     replacements = {'new_build_flag': {'N': 0, 'Y' :1}, 'tenure_type': {'L': 0, 'F': 1}}
-    # one_hot = {'F': [1,0,0,0,0], 'S': [0,1,0,0,0], 'T': [0,0,1,0,0], 'D': [0,0,0,1,0], 'O': [0,0,0,0,1]}
     res = training_rows[['new_build_flag', 'tenure_type']]
-    # print(res)
     res = res.replace(replacements) # Not sure this needs to be here
     res.rename(columns={"tenure_type": 'freehold_flag'})
-    # res['property_type'] = res['property_type'].map(one_hot)
     return res
         
 def convert_property_to_feature_vec(property_feature):
