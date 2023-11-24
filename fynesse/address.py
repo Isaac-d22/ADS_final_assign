@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 from sklearn.decomposition import PCA
+from dateutil.relativedelta import relativedelta
 import fynesse.access as access
 import fynesse.assess as assess
 
@@ -27,7 +28,7 @@ TAGS = [("amenity", "school")]
 
 
 def predict_price(latitude, longitude, date, property_type):
-    samples = get_training_samples(latitude, longitude, date, property_type, limit=100)
+    samples = get_training_samples(latitude, longitude, date, property_type, date_range=50, limit=500)
     target_id = samples[(samples.latitude == latitude) & (samples.longitude == longitude) & (samples.date == date) & (samples.property_type == property_type)]
     # TODO: Remove price to predict from training data
     pois_by_features = []
@@ -37,39 +38,37 @@ def predict_price(latitude, longitude, date, property_type):
     encoded_property_features = property_feature_map(samples)
     features = convert_to_principle_components(pois_by_features, encoded_property_features)
     target_features = features[target_id]
-    features = np.delete(features, target_id)
+    np.delete(features, target_id)
     prices = samples['price'].to_numpy()
     target_price = prices[target_id]
-    prices = np.delete(prices, target_id)
+    np.delete(prices, target_id)
     m_linear = sm.OLS(prices, features)
     results = m_linear.fit()
     prediction = results.get_prediction(target_features).summary_frame(alpha=0.05)['mean']
-    percentage_error = 100 * abs(prediction) / target_price
-    if percentage_error > 0.1:
+    percentage_error = 100 * abs(prediction - target_price) / target_price
+    if percentage_error > 20:
         print("Poor model perfromance")
     print(f"Predicted: {prediction}, Actual: {target_price}, Percentage error: {percentage_error}%")
     return (prediction, target_price)
     
     
 # get relevant training samples
-from dateutil.relativedelta import relativedelta
 # will include the target so make sure to remove that before training
-def get_training_samples(latitude, longitude, date, property_type, date_range=2, area_range=2/69, limit=1000):
+def get_training_samples(latitude, longitude, date, property_type, date_range=1, area_range=0.02, limit=1000):
     credentials = access.get_credentials("credentials.yaml")
     conn = access.create_connection(user=credentials["username"], password=credentials["password"], host=credentials["url"], port=credentials["port"], database=credentials["name"])
     conditions = [
+                  access.greater_equal_condition('date_of_transfer', f"'{date-relativedelta(months=date_range)}'"), access.greater_equal_condition(f"'{date+relativedelta(months=date_range)}'", 'date_of_transfer'),
                   access.greater_equal_condition('latitude', latitude-area_range), access.greater_equal_condition(latitude+area_range, 'latitude'),
                   access.greater_equal_condition('longitude', longitude-area_range), access.greater_equal_condition(longitude+area_range, 'longitude'),
-                  access.greater_equal_condition('date_of_transfer', f"'{date-relativedelta(years=date_range)}'"), access.greater_equal_condition(f"'{date+relativedelta(years=date_range)}'", 'date_of_transfer'),
-                  access.equal_condition('property_type', property_type)
                   ]
-    samples = access.price_coordinates_data_to_df(access.query_table(conn, 'prices_coordinates_data', conditions=conditions, limit=limit))
+    samples = access.price_coordinates_data_to_df(access.query_table(conn, 'prices_coordinates_data', fields=['price', 'property_type', 'new_build_flag', 'tenure_type', 'latitude', 'longitude'], conditions=conditions, limit=limit))
     conn.close()
     return samples
 
 def convert_to_principle_components(pois_by_features, encoded_property_features, threshold=0.95):
     df = pd.DataFrame(pois_by_features)
-    df = pd.concat(df, encoded_property_features)
+    df = pd.concat([df, encoded_property_features],axis=1)
     corr = df.corr()
     corr = corr.dropna(how='all')
     corr = corr.dropna(axis=1, how='all')

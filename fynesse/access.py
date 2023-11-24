@@ -216,14 +216,17 @@ def not_equal_condition(field1, field2):
 def greater_equal_condition(field1, field2):
     return f"{field1}>={field2}"
 
+def less_equal_condition(field1, field2):
+    return f"{field1}<={field2}"
+
 def greater_condition(field1, field2):
     return f"{field1}>{field2}"
+
+def less_condition(field1, field2):
+    return f"{field1}<{field2}"
     
 def query_table(conn, table, fields=['*'], conditions=[], limit=10):
     try:
-        print(f"""
-                SELECT {', '.join(fields)} FROM {table} {('WHERE ' if conditions != [] else '') + ' AND '.join(conditions)} LIMIT {limit}; 
-                    """)
         cursor = conn.cursor()
         cursor.execute(f"""
                     SELECT {', '.join(fields)} FROM {table} {('WHERE ' if conditions != [] else '') + ' AND '.join(conditions)} LIMIT {limit}; 
