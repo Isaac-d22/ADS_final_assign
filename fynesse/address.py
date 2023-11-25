@@ -45,17 +45,21 @@ def predict_price(latitude, longitude, date, property_type):
     prices = samples['price'].to_numpy()
     target_price = prices[target_id]
     prices = np.delete(prices, target_id, axis=0)
-    avg_percent_error = cross_val(prices, features)
+    avg_percent_error, corr = cross_val(prices, features)
     m_linear = sm.OLS(prices, features)
     results = m_linear.fit()
     prediction = results.get_prediction(target_features).summary_frame(alpha=0.05)['mean'][0]
     percentage_error = 100 * abs(prediction - target_price) / target_price
     if avg_percent_error > 20:
         print("Poor model perfromance")
-    print(f"Predicted: {prediction}, Actual: {target_price}, Percentage error: {percentage_error}%")
+    print(f"Predicted: {prediction}, Actual: {target_price}, Percentage error: {percentage_error}%, Average percentage error: {avg_percent_error}, Model correlation: {corr}")
     return (prediction, target_price, avg_percent_error)
 
+# Returns the percentage error for each training item if it was not included in training and then returns the average
+# of this (expected to be higher than prediction error given that bounding box and date range are centered on the actual target).
+# Also computes the correlation of the predicted prices and the actual_prices
 def cross_val(prices, features):
+    predictions = np.zeros(len(prices))
     percentage_errors = []
     for i, target_features in enumerate(features):
         target_price = prices[i]
@@ -64,9 +68,12 @@ def cross_val(prices, features):
         m_linear = sm.OLS(train_prices, train_features)
         results = m_linear.fit()
         prediction = results.get_prediction(target_features).summary_frame(alpha=0.05)['mean'][0]
+        predictions[i] = prediction
         percentage_error = 100 * abs(prediction - target_price) / target_price
         percentage_errors.append(percentage_error)
-    return sum(percentage_errors) / len(percentage_errors)
+    corr = np.corrcoef(prices, predictions)
+    avg_pct_error = sum(percentage_errors) / len(percentage_errors)
+    return avg_pct_error, corr
     
 # get relevant training samples
 # will include the target so make sure to remove that before training
