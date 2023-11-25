@@ -55,7 +55,7 @@ def get_pois(latitude, longitude, tags, box_height=0.02, box_width=0.02):
     south = latitude - box_height/2
     west = longitude - box_width/2
     east = longitude + box_width/2
-    return ox.geometries_from_bbox(north, south, east, west, tags)
+    return ox.features_from_bbox(north, south, east, west, tags)
 
 def get_graph(latitude, longitude, box_height=0.02, box_width=0.02):
     north = latitude + box_height/2

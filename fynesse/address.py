@@ -27,9 +27,9 @@ import fynesse.assess as assess
 TAGS = [("amenity", "school")]
 
 
-def predict_price(latitude, longitude, date, property_type):
+def predict_price(latitude, longitude, date, property_type, date_range=28, linear=True, ridge=False, lasso=False):
     print('Collecting training samples')
-    samples = get_training_samples(latitude, longitude, date, property_type, date_range=50, limit=500)
+    samples = get_training_samples(latitude, longitude, date, property_type, date_range=date_range, limit=500)
     target_id = ((samples.latitude.between(latitude-1e-7, latitude+1e-7)) & (samples.longitude.between(longitude-1e-7, longitude+1e-7)) & (samples.date_of_transfer == date) & (samples.property_type == property_type)).idxmax()
     print(len(samples), 'num training samples')
     # TODO: Remove price to predict from training data
@@ -46,8 +46,9 @@ def predict_price(latitude, longitude, date, property_type):
     target_price = prices[target_id]
     prices = np.delete(prices, target_id, axis=0)
     avg_percent_error, corr = cross_val(prices, features)
-    m_linear = sm.OLS(prices, features)
-    results = m_linear.fit()
+    if linear:
+        m_linear = sm.OLS(prices, features)
+        results = m_linear.fit()
     prediction = results.get_prediction(target_features).summary_frame(alpha=0.05)['mean'][0]
     percentage_error = 100 * abs(prediction - target_price) / target_price
     if avg_percent_error > 20:
@@ -71,7 +72,7 @@ def cross_val(prices, features):
         predictions[i] = prediction
         percentage_error = 100 * abs(prediction - target_price) / target_price
         percentage_errors.append(percentage_error)
-    corr = np.corrcoef(prices, predictions)
+    corr = np.corrcoef(prices, predictions)[0][1]
     avg_pct_error = sum(percentage_errors) / len(percentage_errors)
     return avg_pct_error, corr
     
