@@ -27,12 +27,11 @@ import fynesse.assess as assess
 TAGS = [("amenity", "school")]
 
 
-def predict_price(latitude, longitude, date, property_type, date_range=28, area_range=0.02, linear=True, ridge=False, lasso=False):
+def predict_price(latitude, longitude, date, property_type, date_range=28, area_range=0.02, linear=True, ridge=False, lasso=False, penalty=0):
     print('Collecting training samples')
     samples = get_training_samples(latitude, longitude, date, property_type, date_range=date_range, area_range=area_range, limit=500)
     target_id = ((samples.latitude.between(latitude-1e-7, latitude+1e-7)) & (samples.longitude.between(longitude-1e-7, longitude+1e-7)) & (samples.date_of_transfer == date) & (samples.property_type == property_type)).idxmax()
     print('Number of training samples:', len(samples))
-    # TODO: Remove price to predict from training data
     print('Extracting pois')
     pois_by_features = []
     for i in range(len(samples)):
@@ -41,14 +40,18 @@ def predict_price(latitude, longitude, date, property_type, date_range=28, area_
     encoded_property_features = property_feature_map(samples)
     features = convert_to_principle_components(pois_by_features, encoded_property_features)
     target_features = features[target_id]
-    features = np.delete(features, target_id, axis=0)
+    features = np.delete(features, target_id, axis=0) # removing target house features from training set
     prices = samples['price'].to_numpy()
     target_price = prices[target_id]
     prices = np.delete(prices, target_id, axis=0)
     avg_percent_error, corr = cross_val(prices, features)
+    m_linear = sm.OLS(prices, features)
     if linear:
-        m_linear = sm.OLS(prices, features)
         results = m_linear.fit()
+    elif ridge:
+        results = m_linear.fit_regularized(alpha=penalty, L1_wt=0)
+    elif lasso:
+        results = m_linear.fit_regularized(alpha=penalty, L1_wt=1)
     prediction = results.get_prediction(target_features).summary_frame(alpha=0.05)['mean'][0]
     percentage_error = 100 * abs(prediction - target_price) / target_price
     print(f"Predicted: {prediction}, Actual: {target_price}, Percentage error: {percentage_error}%, Average percentage error: {avg_percent_error}, Model correlation: {corr}")
@@ -57,7 +60,7 @@ def predict_price(latitude, longitude, date, property_type, date_range=28, area_
 # Returns the percentage error for each training item if it was not included in training and then returns the average
 # of this (expected to be higher than prediction error given that bounding box and date range are centered on the actual target).
 # Also computes the correlation of the predicted prices and the actual_prices
-def cross_val(prices, features):
+def cross_val(prices, features, linear, ridge, lasso, penalty):
     predictions = np.zeros(len(prices))
     percentage_errors = []
     for i, target_features in enumerate(features):
@@ -65,7 +68,12 @@ def cross_val(prices, features):
         train_features = np.delete(features, i, axis=0)
         train_prices = np.delete(prices, i, axis=0)
         m_linear = sm.OLS(train_prices, train_features)
-        results = m_linear.fit()
+        if linear:
+            results = m_linear.fit()
+        elif ridge:
+            results = m_linear.fit_regularized(alpha=penalty, L1_wt=0)
+        elif lasso:
+            results = m_linear.fit_regularized(alpha=penalty, L1_wt=1)
         prediction = results.get_prediction(target_features).summary_frame(alpha=0.05)['mean'][0]
         predictions[i] = prediction
         percentage_error = 100 * abs(prediction - target_price) / target_price
