@@ -27,17 +27,17 @@ import fynesse.assess as assess
 TAGS = [("amenity", "school")]
 
 
-def predict_price(latitude, longitude, date, property_type, date_range=28, linear=True, ridge=False, lasso=False):
+def predict_price(latitude, longitude, date, property_type, date_range=28, area_range=0.02, linear=True, ridge=False, lasso=False):
     print('Collecting training samples')
-    samples = get_training_samples(latitude, longitude, date, property_type, date_range=date_range, limit=500)
+    samples = get_training_samples(latitude, longitude, date, property_type, date_range=date_range, area_range=area_range, limit=500)
     target_id = ((samples.latitude.between(latitude-1e-7, latitude+1e-7)) & (samples.longitude.between(longitude-1e-7, longitude+1e-7)) & (samples.date_of_transfer == date) & (samples.property_type == property_type)).idxmax()
-    print(len(samples), 'num training samples')
+    print('Number of training samples:', len(samples))
     # TODO: Remove price to predict from training data
     print('Extracting pois')
     pois_by_features = []
     for i in range(len(samples)):
         pois_by_features.append(assess.count_pois_by_features(assess.get_pois(float(samples.iloc[i].latitude), float(samples.iloc[i].longitude), 
-                                                                              assess.KEYS_DICT, box_height=1/69, box_width=1/69), assess.KEYS_DICT, TAGS))
+                                                                              assess.KEYS_DICT, box_height=0.01, box_width=0.01), assess.KEYS_DICT, TAGS))
     encoded_property_features = property_feature_map(samples)
     features = convert_to_principle_components(pois_by_features, encoded_property_features)
     target_features = features[target_id]
@@ -51,10 +51,8 @@ def predict_price(latitude, longitude, date, property_type, date_range=28, linea
         results = m_linear.fit()
     prediction = results.get_prediction(target_features).summary_frame(alpha=0.05)['mean'][0]
     percentage_error = 100 * abs(prediction - target_price) / target_price
-    if avg_percent_error > 20:
-        print("Poor model perfromance")
     print(f"Predicted: {prediction}, Actual: {target_price}, Percentage error: {percentage_error}%, Average percentage error: {avg_percent_error}, Model correlation: {corr}")
-    return (prediction, target_price, avg_percent_error)
+    return (prediction, target_price, avg_percent_error, corr)
 
 # Returns the percentage error for each training item if it was not included in training and then returns the average
 # of this (expected to be higher than prediction error given that bounding box and date range are centered on the actual target).
