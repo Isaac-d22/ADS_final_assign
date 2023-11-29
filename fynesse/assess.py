@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from sklearn.decomposition import PCA
+from IPython.display import display
 
 """These are the types of import we might expect in this file
 import pandas
