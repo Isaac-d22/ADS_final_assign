@@ -1,3 +1,4 @@
+# This file accesses the data
 from .config import *
 import pymysql
 import requests
@@ -6,21 +7,6 @@ import pandas as pd
 from time import time
 import csv
 import numpy as np
-
-"""These are the types of import we might expect in this file
-import httplib2
-import oauth2
-import tables
-import mongodb
-import sqlite"""
-
-# This file accesses the data
-
-"""Place commands in this file to access the data electronically. Don't remove any missing values, or deal with outliers. Make sure you have legalities correct, both intellectual property and personal data privacy rights. Beyond the legal side also think about the ethical issues around this data. """
-
-def data():
-    """Read the data from the web or local file, returning structured format such as a data frame"""
-    raise NotImplementedError
 
 def get_credentials(path):
     with open(path) as file:
@@ -264,7 +250,6 @@ def price_coordinates_data_to_df(records):
                                          'locality', 'town_city', 'district', 'county', 'country', 'latitude', 'longitude', 'db_id'])
     
 def get_random_rows(conn, num_results=100, seed=1):
-    num_results = 100
     NUM_DB_ROWS = 29669630
 
     rng = np.random.default_rng(seed)

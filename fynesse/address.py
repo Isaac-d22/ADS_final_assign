@@ -1,21 +1,5 @@
 # This file contains code for suporting addressing questions in the data
 
-"""# Here are some of the imports we might expect 
-import sklearn.model_selection  as ms
-import sklearn.linear_model as lm
-import sklearn.svm as svm
-import sklearn.naive_bayes as naive_bayes
-import sklearn.tree as tree
-
-import GPy
-import torch
-import tensorflow as tf
-
-# Or if it's a statistical analysis
-import scipy.stats"""
-
-"""Address a particular question that arises from the data"""
-
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
@@ -27,13 +11,17 @@ import fynesse.assess as assess
 TAGS = [("amenity", "school")]
 
 
-def predict_price(latitude, longitude, date, property_type, date_range=28, area_range=0.02, linear=True, ridge=False, lasso=False, penalty=0):
+def predict_price(latitude, longitude, date, property_type, date_range=28, area_range=0.02, ridge=False, penalty=0, verbose=True):
+    latitude = float(latitude)
+    longitude = float(longitude)
     try:
-        print('Collecting training samples')
+        if verbose:
+            print('Collecting training samples')
         samples = get_training_samples(latitude, longitude, date, property_type, date_range=date_range, area_range=area_range, limit=500)
         target_id = ((samples.latitude.between(latitude-1e-7, latitude+1e-7)) & (samples.longitude.between(longitude-1e-7, longitude+1e-7)) & (samples.date_of_transfer == date) & (samples.property_type == property_type)).idxmax()
-        print('Number of training samples:', len(samples))
-        print('Extracting pois')
+        if verbose:
+            print('Number of training samples:', len(samples))
+            print('Extracting pois')
         pois_by_features = []
         for i in range(len(samples)):
             pois_by_features.append(assess.count_pois_by_features(assess.get_pois(float(samples.iloc[i].latitude), float(samples.iloc[i].longitude), 
@@ -45,20 +33,13 @@ def predict_price(latitude, longitude, date, property_type, date_range=28, area_
         prices = samples['price'].to_numpy()
         target_price = prices[target_id]
         prices = np.delete(prices, target_id, axis=0)
-        avg_percent_error, corr = cross_val(prices, features, linear, ridge, lasso, penalt)
+        avg_percent_error, corr = cross_val(prices, features, ridge, penalty)
         m_linear = sm.OLS(prices, features)
-        if linear:
-            results = m_linear.fit()
-            prediction = results.get_prediction(target_features)
-        elif ridge:
-            results = m_linear.fit_regularized(alpha=penalty, L1_wt=0)
-            prediction = results.predict(target_features)
-        elif lasso:
-            results = m_linear.fit_regularized(alpha=penalty, L1_wt=1)
-            prediction = results.predict(target_features)
-        # prediction = results.get_prediction(target_features).summary_frame(alpha=0.05)['mean'][0]
+        results = m_linear.fit_regularized(alpha=penalty, L1_wt=0)
+        prediction = results.predict(target_features)[0]
         percentage_error = 100 * abs(prediction - target_price) / target_price
-        print(f"Predicted: {prediction}, Actual: {target_price}, Percentage error: {percentage_error}%, Average percentage error: {avg_percent_error}, Model correlation: {corr}")
+        if verbose:
+            print(f"Predicted: {prediction}, Actual: {target_price}, Percentage error: {percentage_error}%, Average percentage error: {avg_percent_error}, Model correlation: {corr}")
         return (prediction, target_price, avg_percent_error, corr)
     except Exception as e:
         print(f"The following error occured whilst trying to make a prediction: {e}")
@@ -66,7 +47,7 @@ def predict_price(latitude, longitude, date, property_type, date_range=28, area_
 # Returns the percentage error for each training item if it was not included in training and then returns the average
 # of this (expected to be higher than prediction error given that bounding box and date range are centered on the actual target).
 # Also computes the correlation of the predicted prices and the actual_prices
-def cross_val(prices, features, linear, ridge, lasso, penalty):
+def cross_val(prices, features, ridge, penalty):
     predictions = np.zeros(len(prices))
     percentage_errors = []
     for i, target_features in enumerate(features):
@@ -74,15 +55,8 @@ def cross_val(prices, features, linear, ridge, lasso, penalty):
         train_features = np.delete(features, i, axis=0)
         train_prices = np.delete(prices, i, axis=0)
         m_linear = sm.OLS(train_prices, train_features)
-        if linear:
-            results = m_linear.fit()
-        elif ridge:
-            results = m_linear.fit_regularized(alpha=penalty, L1_wt=0)
-        elif lasso:
-            results = m_linear.fit_regularized(alpha=penalty, L1_wt=1)
-        else:
-            raise ValueError("You have not selected a model type")
-        prediction = results.get_prediction(target_features).summary_frame(alpha=0.05)['mean'][0]
+        results = m_linear.fit_regularized(alpha=penalty, L1_wt=0)
+        prediction = results.predict(target_features)[0]
         predictions[i] = prediction
         percentage_error = 100 * abs(prediction - target_price) / target_price
         percentage_errors.append(percentage_error)
