@@ -165,29 +165,19 @@ def visualise_pois_by_key(locations, keys, box_height=0.02, box_width=0.02, tag_
     for i, loc in enumerate(locations):
         for j, key in enumerate(keys):
             try:        
-                # Retrieve nodes and edges
                 _, edges = ox.graph_to_gdfs(graphs[i])
-                
-                # Get place boundary related to the place name as a geodataframe
                 area = ox.geocode_to_gdf(loc[2], which_result=1)
-
-                # Plot the footprint
                 if len(keys) > 1:
                     sub_ax = ax[j][i]
                 else:
                     sub_ax = ax[i]
                 area.plot(ax=sub_ax, facecolor="white")
-
-                # Plot street edges
                 edges.plot(ax=sub_ax, linewidth=1, edgecolor="dimgray")
-                
                 north, south, west, east = get_box(loc[0], loc[1], box_height, box_width)
                 sub_ax.set_xlim([west, east])
                 sub_ax.set_ylim([south, north])
                 sub_ax.set_xlabel("longitude")
                 sub_ax.set_ylabel("latitude")
-                # Plot all POIs
-                # Get POIS
                 if tag_version:
                     sub_ax.set_title(f"{loc[2]} {key[0]}={key[1]}")
                     pois_subset = pois[i][pois[i][key[0]] == key[1]]

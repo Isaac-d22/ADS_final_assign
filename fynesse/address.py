@@ -97,7 +97,7 @@ def convert_to_principle_components(pois_by_features, encoded_property_features,
 def property_feature_map(training_rows):
     replacements = {'new_build_flag': {'N': 0, 'Y' :1}, 'tenure_type': {'L': 0, 'F': 1}}
     res = training_rows[['new_build_flag', 'tenure_type']]
-    res = res.replace(replacements) # Not sure this needs to be here
+    res = res.replace(replacements)
     res.rename(columns={"tenure_type": 'freehold_flag'})
     return res
         

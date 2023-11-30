@@ -1,6 +1,6 @@
 ## House price predictions
 
-Below I outline how to make use of my house price prediction system. As part of developing this system I following the Fynesse framework consisting of 3 stages: address, access and assess. The code has been designed to be as modular as possible to faciliate reuse for different tasks that make use of the same data. For a more in depth demonstration of how the library can be used please refer to the [notebook](https://github.com/Isaac-d22/ADS_final_assignment/blob/main/notebooks/ADS_Report_2268A.ipynb). <br><br>
+Below I outline how to make use of my house price prediction system. As part of developing this system I followed the Fynesse framework consisting of 3 stages: address, access and assess. The code has been designed to be as modular as possible to faciliate reuse for different tasks that make use of the same data. For a more in depth demonstration of how the library can be used please refer to the [notebook](https://github.com/Isaac-d22/ADS_final_assignment/blob/main/notebooks/ADS_Report_2268A.ipynb). <br><br>
 
 ### Installing libraries
 ```python
